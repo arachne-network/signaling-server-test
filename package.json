@@ -1,0 +1,31 @@
+{
+  "name": "signaling-server-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx tsc",
+    "start": "npx tsc && node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arachne-network/signaling-server-test.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arachne-network/signaling-server-test/issues"
+  },
+  "homepage": "https://github.com/arachne-network/signaling-server-test#readme",
+  "dependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.2.0",
+    "@types/socket.io": "^3.0.2",
+    "concurrently": "^8.2.2",
+    "node": "^22.6.0",
+    "nodemon": "^3.1.4",
+    "typescript": "^5.5.4"
+  }
+}

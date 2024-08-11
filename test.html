@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+ *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree.
+-->
+<html>
+  <head>
+    <title>Test</title>
+  </head>
+
+  <body>
+    <button id="start" onclick="start()">start</button>
+    <button id="call" onclick="call()">call</button>
+    <video id="localVideo" playsinline autoplay muted width="250"></video>
+    <video id="remoteVideo" playsinline autoplay muted width="250"></video>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const localVideo = document.getElementById("localVideo");
+      let localStream;
+      async function start() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
+        localVideo.srcObject = stream;
+        localStream = stream;
+      }
+      async function call() {
+        const config = {
+          iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
+        };
+        const pc = new RTCPeerConnection(config);
+        const pc2 = new RTCPeerConnection(config);
+
+        pc.addEventListener("icecandidate", async (e) => {
+          console.log("offer:" + JSON.stringify(e.candidate));
+        });
+
+        pc2.addEventListener("icecandidate", async (e) => {
+          console.log("pc22!!");
+          await pc.addIceCandidate(e.candidate);
+        });
+
+        pc2.addEventListener("track", (e) => {
+          const remoteVideo = document.getElementById("remoteVideo");
+          remoteVideo.srcObject = e.streams[0];
+        });
+        // event를 받으면 videostream을 만드는
+        localStream
+          .getTracks()
+          .forEach((track) => pc.addTrack(track, localStream));
+        //const offer = await pc.createOffer();
+        await pc.setLocalDescription();
+        await pc2.setRemoteDescription(pc.localDescription);
+        const answer = await pc2.createAnswer();
+        await pc2.setLocalDescription(answer);
+        await pc.setRemoteDescription(answer);
+      }
+    </script>
+  </body>
+</html>

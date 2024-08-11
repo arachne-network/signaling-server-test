@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head> </head>
+  <body>
+    <!--post 방식으로 socket의 id를 보내야 한다.-->
+    <form method="get" action="./streamer">
+      <button id="streamer" name="streamerId">start</button>
+    </form>
+
+    <button id="list" onclick="list()">list</button>
+
+    <form method="get" action="./viewer">
+      <ul id="rooms"></ul>
+    </form>
+    <ul id="des"></ul>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const config = {
+        iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
+      };
+      const pc = new RTCPeerConnection(config);
+      const rooms = document.getElementById("rooms");
+
+      // startStream하면 사이트가 바뀌어야 한다.
+      function list() {
+        while (rooms.hasChildNodes()) {
+          rooms.removeChild(rooms.firstChild);
+        }
+        socket.emit("list", {}, async (responseData) => {
+          const list = responseData.list;
+          for (let roomId of list) {
+            const room = document.createElement("button");
+            room.textContent = roomId;
+            room.id = roomId;
+            room.name = "roomId";
+            room.value = roomId;
+            rooms.appendChild(room);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

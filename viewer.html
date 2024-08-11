@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+ *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree.
+-->
+<html>
+  <head>
+    <title>viewer</title>
+  </head>
+
+  <body>
+    <button id="start">start</button>
+    <video id="localVideo" playsinline autoplay muted width="250"></video>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // 연결이 되어 있는지 확인해야 한느데
+
+      const socket = io();
+      const config = {
+        iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
+      };
+      const pc = new RTCPeerConnection(config);
+      let sender;
+
+      pc.addEventListener("track", (e) => {
+        const localVideo = document.getElementById("localVideo");
+        localVideo.srcObject = e.streams[0];
+      });
+
+      pc.addEventListener("icecandidate", (e) => {
+        const candidateMsg = {
+          sender: sender,
+          candidate: e.candidate,
+        };
+        console.log("getCandidate: " + JSON.stringify(candidateMsg));
+        socket.emit("getCandidate", candidateMsg);
+      });
+
+      function init() {
+        const url = new URL(window.location.href);
+        const urlParams = url.searchParams;
+        const roomId = urlParams.get("roomId");
+
+        socket.emit("joinRoom", roomId);
+      }
+
+      socket.on("makeAnswer", async (msg) => {
+        sender = msg.sender;
+        await pc.setRemoteDescription(msg.sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        const newMsg = {
+          sender: msg.sender,
+          receiver: msg.receiver,
+          sdp: pc.localDescription,
+        };
+        socket.emit("getAnswer", newMsg);
+      });
+
+      init();
+    </script>
+  </body>
+</html>

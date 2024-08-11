@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+ *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree.
+-->
+<html>
+  <head>
+    <title>Peer connection</title>
+  </head>
+
+  <body>
+    <button id="start" onclick="start()">start</button>
+    <video id="localVideo" playsinline autoplay muted width="250"></video>
+    <button id="checkSenders" onclick="checkSender()"></button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      socket.emit("startStream");
+
+      const config = {
+        iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
+      };
+      const pc = new RTCPeerConnection(config);
+
+      async function start() {
+        const startButton = document.getElementById("start");
+        const localVideo = document.getElementById("localVideo");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
+
+        for (const track of stream.getTracks()) {
+          pc.addTrack(track, stream);
+        }
+        localVideo.srcObject = stream;
+      }
+
+      socket.on("sendOffer", async (initializer) => {
+        await pc.setLocalDescription();
+        socket.emit("getOffer", {
+          initializer: initializer,
+          sdp: pc.localDescription,
+        });
+      });
+
+      socket.on("makeOffer", async (msg) => {
+        await pc.setLocalDescription();
+        const newMsg = {
+          sender: msg.sender,
+          receiver: msg.receiver,
+          sdp: pc.localDescription,
+        };
+
+        socket.emit("getOffer", newMsg);
+      });
+
+      socket.on("setAnswer", async (msg) => {
+        await pc.setRemoteDescription(msg.sdp);
+      });
+
+      socket.on("setCandidate", async (msg) => {
+        await pc.addIceCandidate(msg.candidate);
+      });
+
+      function checkSender() {
+        const senders = pc.getSenders();
+        console.log(senders);
+      }
+    </script>
+  </body>
+</html>
