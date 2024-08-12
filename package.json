@@ -2,11 +2,11 @@
   "name": "signaling-server-test",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "tsc && node index.js"
+    "start": "tsc && node ./dist/index.js"
   },
   "repository": {
     "type": "git",

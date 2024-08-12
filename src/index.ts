@@ -1,8 +1,8 @@
 import bodyParser from "body-parser";
 import express, { Express, Request, Response } from "express";
 import { createServer } from "http";
-import { join } from "path";
 import { Server, Socket } from "socket.io";
+import path from "path";
 
 const port = 3000;
 
@@ -33,8 +33,11 @@ const app: Express = express();
 const server = createServer(app);
 const io: Server = new Server(server);
 
+const staticDir = path.join(__dirname, "../static");
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(staticDir));
 
 function addStreaming(streamerId: string) {
   const streamingRoom: StreamingRoom = {
@@ -45,20 +48,20 @@ function addStreaming(streamerId: string) {
 }
 
 app.get("/", (req: Request, res: Response) => {
-  res.sendFile(join(__dirname, "index.html"));
+  res.sendFile(path.join(staticDir, "index.html"));
 });
 
 app.get("/test", (req: Request, res: Response) => {
-  res.sendFile(join(__dirname, "test.html"));
+  res.sendFile(path.join(staticDir, "test.html"));
 });
 
 app.get("/streamer", (req: Request, res: Response) => {
-  res.sendFile(join(__dirname, "streamer.html"));
+  res.sendFile(path.join(staticDir, "streamer.html"));
 });
 // roomId를 어떻게 가지고 갈 것인가? parameter로 가지고 가면 될 듯
 
 app.get("/viewer", (req: Request, res: Response) => {
-  res.sendFile(join(__dirname, "viewer.html"));
+  res.sendFile(path.join(staticDir, "viewer.html"));
 });
 
 function selectPeer(roomId: string): string {
