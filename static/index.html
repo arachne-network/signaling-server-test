@@ -3,15 +3,13 @@
   <head> </head>
   <body>
     <!--post 방식으로 socket의 id를 보내야 한다.-->
-    <form method="get" action="./streamer">
-      <button id="streamer" name="streamerId">start</button>
-    </form>
+    <h1>WebRTC signaling Server Test</h1>
+    <button id="streamer" name="streamerId", onclick="location.href='./streamer.html'">start</button>
 
     <button id="list" onclick="list()">list</button>
 
-    <form method="get" action="./viewer">
-      <ul id="rooms"></ul>
-    </form>
+    <ul id="rooms"></ul>
+
     <ul id="des"></ul>
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -27,14 +25,18 @@
         while (rooms.hasChildNodes()) {
           rooms.removeChild(rooms.firstChild);
         }
-        socket.emit("list", {}, async (responseData) => {
-          const list = responseData.list;
-          for (let roomId of list) {
+        socket.emit("list", {}, async (res) => {
+          const list = res.rooms;
+          for (const roomId of list) {
+            console.log(roomId);
             const room = document.createElement("button");
-            room.textContent = roomId;
+            room.textContent = roomId.toString();
             room.id = roomId;
             room.name = "roomId";
-            room.value = roomId;
+            room.value = roomId.toString();
+            room.onclick = function () {
+              location.href = "./viewer.html?roomId=" + roomId;
+            };
             rooms.appendChild(room);
           }
         });
