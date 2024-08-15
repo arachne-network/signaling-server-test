@@ -14,6 +14,13 @@ export class RoomManager {
     this.rooms.push(room);
     return room;  
   }
+
+  removeUser(room: Room, userId: string) {
+    const index = room.viewers.findIndex(user => user.id === userId);
+    if (index !== -1) {
+      room.viewers.splice(index, 1);
+    }
+  }
   
   getRooms() : Room[] {
       return this.rooms;
@@ -29,5 +36,12 @@ export class RoomManager {
         throw new Error("Room not found");
       }
       return room;
+  }
+
+  addViewer(room: Room, userId: string) {
+    const user: User = {
+      id: userId
+    }
+    room.viewers.push(user);
   }
 }
