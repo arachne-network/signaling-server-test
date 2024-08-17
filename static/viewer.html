@@ -23,6 +23,8 @@
         iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
       };
       const pc = new RTCPeerConnection(config);
+      const pc_send = new RTCPeerConnection(config);
+
       let sender;
 
       pc.addEventListener("track", (e) => {
@@ -59,6 +61,27 @@
           sdp: pc.localDescription,
         };
         socket.emit("getAnswer", newMsg);
+      });
+
+      socket.on("makeOffer", async (msg) => {
+        pc_send.addTrack(localVideo.srcObject.getVideoTracks()[0], localVideo.srcObject);
+
+        await pc_send.setLocalDescription();
+        const newMsg = {
+          sender: msg.sender,
+          receiver: msg.receiver,
+          sdp: pc_send.localDescription,
+        };
+        console.log("new connection from " + msg.sender + " to " + msg.receiver);
+        socket.emit("getOffer", newMsg);
+      });
+
+      socket.on("setAnswer", async (msg) => {
+        await pc_send.setRemoteDescription(msg.sdp);
+      });
+
+      socket.on("setCandidate", async (msg) => {
+        await pc_send.addIceCandidate(msg.candidate);
       });
 
       init();

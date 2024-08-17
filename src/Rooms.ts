@@ -7,7 +7,8 @@ export class RoomManager {
     const room : Room = {
       roomId: roomId,
       streamer: {
-        id: userId
+        id: userId,
+        isHosting : false,
       },
       viewers: []
     }
@@ -40,8 +41,14 @@ export class RoomManager {
 
   addViewer(room: Room, userId: string) {
     const user: User = {
-      id: userId
+      id: userId,
+      isHosting: false,
     }
+
+    // if(room.streamer.isHosting === false) {
+    //   room.streamer.isHosting = true;
+    // }
+
     room.viewers.push(user);
   }
 }

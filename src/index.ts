@@ -6,7 +6,7 @@ import path from "path";
 import {RoomManager} from "./Rooms";
 import {selectPeer} from "./selectPeer";
 import { Room } from "./interfaces";
-import { Connection } from "./interfaces/connection";
+import { Connection, ConnectionStatus } from "./interfaces/connection";
 
 const port = 3000;
 
@@ -50,13 +50,18 @@ io.on("connection", (socket: Socket) => {
     // sender와 receiver를 직접 만들어서 메시지에 포함해야 한다.
     socket.join(roomId);
     const room: Room = roomManager.getRoom(roomId);
-    roomManager.addViewer(room, userId);
     const sender: string = selectPeer(room);
+    roomManager.addViewer(room, userId);
     // sender, receiver를 db에 집어넣는다.
+
+    console.log(`[server]: ${userId} joined room ${roomId}`);
+    console.log("sender: "+ sender + " receiver: " + userId);
 
     const connection: Connection = {
       sender: sender,
       receiver: userId,
+      status: ConnectionStatus.PENDING,
+      timestamp: Date.now(),
     };
 
     const msg: Message = {
@@ -64,6 +69,13 @@ io.on("connection", (socket: Socket) => {
       receiver: userId,
     };
 
+    for(const user of room.viewers) {
+      if(user.id === sender) {
+        user.isHosting = true;
+        console.log(`[server]: ${user.id} is now hosting`);
+      }
+    }
+    
     io.in(sender).emit("makeOffer", msg);
   });
 
@@ -88,6 +100,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("disconnect", () => {
     const room = socketToRoom.get(userId);
+
     if (room) {
       roomManager.removeUser(room, userId);
       console.log(`[server]: ${userId} disconnected`);

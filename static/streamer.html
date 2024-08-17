@@ -41,14 +41,6 @@
         localVideo.srcObject = stream;
       }
 
-      socket.on("sendOffer", async (initializer) => {
-        await pc.setLocalDescription();
-        socket.emit("getOffer", {
-          initializer: initializer,
-          sdp: pc.localDescription,
-        });
-      });
-
       socket.on("makeOffer", async (msg) => {
         await pc.setLocalDescription();
         const newMsg = {
@@ -56,7 +48,7 @@
           receiver: msg.receiver,
           sdp: pc.localDescription,
         };
-
+        console.log("new connection from " + msg.sender + " to " + msg.receiver);
         socket.emit("getOffer", newMsg);
       });
 
