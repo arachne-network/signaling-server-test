@@ -7,12 +7,20 @@ export class RoomManager {
     const room : Room = {
       roomId: roomId,
       streamer: {
-        id: userId
+        id: userId,
+        isHosting : false,
       },
       viewers: []
     }
     this.rooms.push(room);
     return room;  
+  }
+
+  removeUser(room: Room, userId: string) {
+    const index = room.viewers.findIndex(user => user.id === userId);
+    if (index !== -1) {
+      room.viewers.splice(index, 1);
+    }
   }
   
   getRooms() : Room[] {
@@ -29,5 +37,18 @@ export class RoomManager {
         throw new Error("Room not found");
       }
       return room;
+  }
+
+  addViewer(room: Room, userId: string) {
+    const user: User = {
+      id: userId,
+      isHosting: false,
+    }
+
+    // if(room.streamer.isHosting === false) {
+    //   room.streamer.isHosting = true;
+    // }
+
+    room.viewers.push(user);
   }
 }

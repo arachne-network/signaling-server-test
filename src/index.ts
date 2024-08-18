@@ -6,18 +6,9 @@ import path from "path";
 import {RoomManager} from "./Rooms";
 import {selectPeer} from "./selectPeer";
 import { Room } from "./interfaces";
+import { Connection, ConnectionStatus } from "./interfaces/connection";
 
 const port = 3000;
-
-interface StreamingRoom {
-  roomId: string;
-  streamer: string;
-}
-interface Description {
-  roomId: string;
-  initializer: string;
-  description: RTCSessionDescription;
-}
 
 interface Message {
   sender: string;
@@ -52,7 +43,6 @@ io.on("connection", (socket: Socket) => {
     const room = roomManager.createRoom(roomId, userId);
     socketToRoom.set(roomId, room);
     console.log(`[server]: ${userId} started streaming in room ${roomId}`);
-    console.log("room list ", roomManager.getRoomIds());
   });
 
   socket.on("joinRoom", (roomId: string) => {
@@ -61,12 +51,31 @@ io.on("connection", (socket: Socket) => {
     socket.join(roomId);
     const room: Room = roomManager.getRoom(roomId);
     const sender: string = selectPeer(room);
+    roomManager.addViewer(room, userId);
+    // sender, receiver를 db에 집어넣는다.
+
+    console.log(`[server]: ${userId} joined room ${roomId}`);
+    console.log("sender: "+ sender + " receiver: " + userId);
+
+    const connection: Connection = {
+      sender: sender,
+      receiver: userId,
+      status: ConnectionStatus.PENDING,
+      timestamp: Date.now(),
+    };
 
     const msg: Message = {
       sender: sender,
       receiver: userId,
     };
 
+    for(const user of room.viewers) {
+      if(user.id === sender) {
+        user.isHosting = true;
+        console.log(`[server]: ${user.id} is now hosting`);
+      }
+    }
+    
     io.in(sender).emit("makeOffer", msg);
   });
 
@@ -78,7 +87,7 @@ io.on("connection", (socket: Socket) => {
 
   // callback 함수로 offer를 받았다고 하자. 그럼
   socket.on("getOffer", (msg: Message) => {
-    io.in(msg.receiver).emit("makeAnswer", msg);
+    io.in(msg.receiver).emit("makeAnswer", msg);  
   });
 
   socket.on("getAnswer", (msg: Message) => {
@@ -87,6 +96,15 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("getCandidate", (msg: CandidateMessage) => {
     io.in(msg.sender).emit("setCandidate", msg);
+  });
+
+  socket.on("disconnect", () => {
+    const room = socketToRoom.get(userId);
+
+    if (room) {
+      roomManager.removeUser(room, userId);
+      console.log(`[server]: ${userId} disconnected`);
+    }
   });
 });
 
