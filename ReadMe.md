@@ -15,5 +15,5 @@ npm node install해서 실행하면 됨
 
 -------------------
 
-
-
+## Docker Redis server 실행방법
+```docker run -p 6379:6379 -it redis/redis-stack-server:latest```
