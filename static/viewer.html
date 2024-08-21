@@ -13,7 +13,9 @@
 
   <body>
     <button id="start">start</button>
+    <button onclick="checkStatus()">checkStatus</button>
     <video id="localVideo" playsinline autoplay muted width="250"></video>
+    <script src="https://unpkg.com/@peermetrics/webrtc-stats@latest/dist/browser.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
       // 연결이 되어 있는지 확인해야 한느데
@@ -26,18 +28,22 @@
       const pc_send = new RTCPeerConnection(config);
 
       let sender;
-
+      let localStream;
       pc.addEventListener("track", (e) => {
         const localVideo = document.getElementById("localVideo");
         localVideo.srcObject = e.streams[0];
+        localStream = e.streams[0];
       });
+
+      function checkStatus() {
+        console.log(localStream);
+      }
 
       pc.addEventListener("icecandidate", (e) => {
         const candidateMsg = {
           sender: sender,
           candidate: e.candidate,
         };
-        console.log("getCandidate: " + JSON.stringify(candidateMsg));
         socket.emit("getCandidate", candidateMsg);
       });
 
@@ -85,6 +91,20 @@
       });
 
       init();
+
+      let webrtcStats = new WebRTCStats({
+        getStatsInterval: 5000,
+      });
+
+      webrtcStats.on("stats", (ev) => {
+        console.log("viewer: ", ev);
+      });
+
+      webrtcStats.addConnection({
+        pc: pc,
+        peerId: "viewer",
+      });
+
     </script>
   </body>
 </html>

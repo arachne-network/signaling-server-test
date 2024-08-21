@@ -13,6 +13,7 @@
 
   <body>
     <button id="start" onclick="start()">start</button>
+    <button id="finish" onclick="finish()">finish</button>
     <video id="localVideo" playsinline autoplay muted width="250"></video>
     <button id="checkSenders" onclick="checkSender()"></button>
 
@@ -26,6 +27,8 @@
         iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
       };
       const pc = new RTCPeerConnection(config);
+      
+      let localStream;
 
       async function start() {
         const startButton = document.getElementById("start");
@@ -37,8 +40,19 @@
 
         for (const track of stream.getTracks()) {
           pc.addTrack(track, stream);
+          
         }
         localVideo.srcObject = stream;
+        localStream = stream;
+      }
+
+      function finish() {
+        const videoTracks = localStream.getVideoTracks();
+        videoTracks.forEach(videoTrack => {
+          videoTrack.stop();
+          localStream.removeTrack(videoTrack);
+        });
+        localVideo.srcObject = null;
       }
 
       socket.on("makeOffer", async (msg) => {
