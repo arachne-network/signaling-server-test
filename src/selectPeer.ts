@@ -1,16 +1,9 @@
 import {Room} from "./interfaces";
+import cache from "./core/db/db";
 
-
-export const selectPeer = (room: Room) => {
+export const selectPeer = async (roomId: string) => {
     // 일단은 streamer에게 쏜다고 하자
-    
-    let peer = room.streamer;
-    for (const viewer of room.viewers) {
-      if(viewer.isHosting === false) {
-        peer = viewer;
-        break;
-      }
-    }
+    const users : string[] = await cache.sMembers(roomId);
 
-    return peer.id;
+    return users[0];
   }

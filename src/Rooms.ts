@@ -45,10 +45,6 @@ export class RoomManager {
       isHosting: false,
     }
 
-    // if(room.streamer.isHosting === false) {
-    //   room.streamer.isHosting = true;
-    // }
-
     room.viewers.push(user);
   }
 }

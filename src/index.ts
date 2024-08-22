@@ -3,19 +3,10 @@ import express, { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import path from "path";
-import {RoomManager} from "./Rooms";
 import {selectPeer} from "./selectPeer";
-import { Room } from "./interfaces";
-import { Connection, ConnectionStatus } from "./interfaces/connection";
+import cache from "./core/db/db";
 
 const port = 3000;
-
-interface Message {
-  sender: string;
-  receiver: string;
-  sdp?: RTCSessionDescription;
-}
-
 interface CandidateMessage {
   sender: string;
   candidate: RTCIceCandidate;
@@ -32,79 +23,113 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(staticDir));
 
 
-const roomManager = new RoomManager();
-const socketToRoom: Map<string, Room> = new Map();
+const getUserToSocketKey = (userId: string, roomId : string) => {
+  return `${userId}:${roomId}`;
+}
 
 io.on("connection", (socket: Socket) => {
-  const userId = socket.id; // 유저 id로 나눠야 하지만 일단 연결별로 다른 유저
-
-  socket.on("startStream", (roomId: string) => {
+  socket.on("createRoom", async (userId: string, roomId: string) => {
     socket.join(roomId);
-    const room = roomManager.createRoom(roomId, userId);
-    socketToRoom.set(roomId, room);
-    console.log(`[server]: ${userId} started streaming in room ${roomId}`);
-  });
-
-  socket.on("joinRoom", (roomId: string) => {
-    // 일단은 streamer와 직접적으로 연결한다.
-    // sender와 receiver를 직접 만들어서 메시지에 포함해야 한다.
-    socket.join(roomId);
-    const room: Room = roomManager.getRoom(roomId);
-    const sender: string = selectPeer(room);
-    roomManager.addViewer(room, userId);
-    // sender, receiver를 db에 집어넣는다.
-
-    console.log(`[server]: ${userId} joined room ${roomId}`);
-    console.log("sender: "+ sender + " receiver: " + userId);
-
-    const connection: Connection = {
-      sender: sender,
-      receiver: userId,
-      status: ConnectionStatus.PENDING,
-      timestamp: Date.now(),
-    };
-
-    const msg: Message = {
-      sender: sender,
-      receiver: userId,
-    };
-
-    for(const user of room.viewers) {
-      if(user.id === sender) {
-        user.isHosting = true;
-        console.log(`[server]: ${user.id} is now hosting`);
-      }
+    if(await cache.sCard(roomId))
+    {
+      console.log(`[server]: Room ${roomId} already exists`);
+      socket.emit("error", {code : 2001, message: "Room already exists"});
+      return;
     }
-    
-    io.in(sender).emit("makeOffer", msg);
+
+    // socket id to roomId who is streamer
+    if(!await cache.get(`streamer:${socket.id}`)){
+      cache.set(`streamer:${socket.id}`, roomId);
+    }
+
+    // set user to socket id
+    if(!await cache.get(getUserToSocketKey(userId, roomId))) {
+      cache.set(getUserToSocketKey(userId, roomId), socket.id);
+    }
+
+    // set socket id to user
+    if(!await cache.get(socket.id)) {
+      cache.set(socket.id, userId);
+    }
+
+    cache.sSet(roomId, userId);
+
+    // roomId 존재하는지 체크
+    // socketId, userId(스트리머) 맵핑
+    // room 생성
   });
 
-  socket.on("list", (data: any, callback: Function) => {
-    callback({
-      rooms: roomManager.getRoomIds(),
-    });
+  socket.on("joinRoom", async (userId: string, roomId: string, networkData? : any) => {
+    // room 존재하는지 확인
+    // socketId, userId 맵핑
+    // peer selection
+    //  이건 유저 아이디랑 유저 네트워크 상황 필요
+    // connection 추가
+    // user send count 추가
+    // offer 보내기
+
+    socket.join(roomId);
+
+    if(!await cache.sCard(roomId) || await cache.sCard(roomId) === 0){
+      console.log(`[server]: Room ${roomId} does not exist`);
+      socket.emit("error", {code : 2002, message: "Room does not exist"});
+      return;
+    }
+
+    // set user to socket id
+    if(!cache.get(getUserToSocketKey(userId, roomId))) {
+      cache.set(getUserToSocketKey(userId, roomId), socket.id);
+    }
+
+    // set socket id to user
+    if(!cache.get(socket.id)) {
+      cache.set(socket.id, userId);
+    }
+
+    // roomId set에 userId 추가
+    cache.sSet(roomId, userId);
+
+    // select Peer 를 하면 User Id가 나온다.
+    // userId에서 socketId를 어떻게 알까?
+    const sender = await selectPeer(roomId);
+    const senderSocketId = await cache.get(getUserToSocketKey(sender, roomId));
+
+    io.in(senderSocketId).emit("makeOffer", socket.id);
+  });
+  socket.on("offer", (toSocketId: string, offer: RTCSessionDescription) => {
+    io.in(toSocketId).emit("makeAnswer", socket.id, offer);
+  });
+  socket.on("answer", (toSocketId: string, answer: RTCSessionDescription) => {
+    io.in(toSocketId).emit("setAnswer", socket.id, answer);
+  });
+  // socket.on("candidate", (userId: string, candidate: RTCIceCandidate) => {});
+  socket.on("disconnect", (reason: string) => {
+    // 1. streamer disconnect
+    // const roomId = cache.get(`streamer:${socket.id}`);
+    // if(roomId) {
+    //   io.to(roomId).emit("streamerDisconnect");
+    //   cache.del(roomId);
+    //   cache.del(`streamer:${socket.id}`);
+    // }
+    // // 2. viewer disconnect
+    // else{
+    //   const userId = cache.get(socket.id);
+    //   const roomId = cache.sGet(userId);
+    //   cache.sRem(roomId, userId);
+    // }
+
+    console.log(`disconnect ${socket.id} : `, reason);
   });
 
-  // callback 함수로 offer를 받았다고 하자. 그럼
-  socket.on("getOffer", (msg: Message) => {
-    io.in(msg.receiver).emit("makeAnswer", msg);  
-  });
 
-  socket.on("getAnswer", (msg: Message) => {
-    io.in(msg.sender).emit("setAnswer", msg);
-  });
+  // socket.on("list", (data: any, callback: Function) => {
+  //   callback({
+  //     rooms: await cache.,
+  //   });
+  // });
 
   socket.on("getCandidate", (msg: CandidateMessage) => {
     io.in(msg.sender).emit("setCandidate", msg);
-  });
-
-  socket.on("disconnect", () => {
-    const room = socketToRoom.get(userId);
-
-    if (room) {
-      roomManager.removeUser(room, userId);
-      console.log(`[server]: ${userId} disconnected`);
-    }
   });
 });
 
