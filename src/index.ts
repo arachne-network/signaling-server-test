@@ -5,6 +5,7 @@ import { Server, Socket } from "socket.io";
 import path from "path";
 import {selectPeer} from "./selectPeer";
 import cache from "./core/db/db";
+import { connectRedisAdapter } from "./core/db/redis";
 
 const port = 3000;
 interface CandidateMessage {
@@ -29,6 +30,10 @@ const getUserToSocketKey = (userId: string, roomId : string) => {
 
 io.on("connection", (socket: Socket) => {
   socket.on("createRoom", async (userId: string, roomId: string) => {
+    // join user to room
+    // set streamer to room
+    // 
+
     socket.join(roomId);
     if(await cache.sCard(roomId))
     {
@@ -133,6 +138,19 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`[server]: Serves running at <https://localhost>:${port}`);
-});
+// server.listen(port, () => {
+//   console.log(`[server]: Serves running at <https://localhost>:${port}`);
+// });
+
+async function startServer() {
+  try {
+    await connectRedisAdapter(io);
+    app.listen(port, () => {
+      console.log(`[server]: Server running at <https://localhost>:${port}`);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+startServer();
