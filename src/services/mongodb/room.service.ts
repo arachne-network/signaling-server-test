@@ -11,6 +11,7 @@ class RoomService {
                 streamer: userId,
             }
             await roomModel.create(data);
+            console.log(`room ${roomId} added`);
         } catch (error) {
             console.error(error);
             return error;
@@ -24,6 +25,19 @@ class RoomService {
     async getRoomByRoomId(roomId: string) {
         return await roomModel.findOne({roomId});
     }
+
+    async getRoomByStreamerId(streamerId: string) {
+        return await roomModel.findOne({streamer: streamerId});
+    }
+
+    async deleteRoom(roomId : string) {
+        return await roomModel.deleteOne({roomId});
+    }
+
+    async deleteRoomByStreamer(streamerId: string) {
+        return await roomModel.deleteOne({streamer: streamerId});
+    }
+
 }
 
 export const roomService : RoomService = new RoomService();

@@ -21,6 +21,7 @@ class UserCache extends RedisClient{
             return null;
         }
     }
+
 }
 
 export const userCache : UserCache = new UserCache();

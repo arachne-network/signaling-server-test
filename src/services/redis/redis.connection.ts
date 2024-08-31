@@ -9,7 +9,7 @@ export class RedisClient{
 
     constructor(){
         this.client = createClient({ url: redisUrl });
-        this.error();
+        this.connect();
     }
 
     async connect(){

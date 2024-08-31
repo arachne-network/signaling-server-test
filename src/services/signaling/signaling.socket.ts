@@ -55,9 +55,6 @@ export class SignalingHandler{
 
                 if(this.eventHandler)
                     this.eventHandler.disconnect(socket, reason);
-
-                // todo : remove log
-                console.log(`disconnect ${socket.id} : `, reason);
             });
 
             socket.on("getCandidate", (toSocketId : string, candidate : RTCIceCandidate) => {

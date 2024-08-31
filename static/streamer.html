@@ -20,7 +20,7 @@
     <script>
       const socket = io();
       const randomId = Math.random().toString(36).substr(2, 11);
-      socket.emit("startStream", randomId);
+      socket.emit("create", randomId);
 
       const config = {
         iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
@@ -41,23 +41,24 @@
         localVideo.srcObject = stream;
       }
 
-      socket.on("makeOffer", async (msg) => {
+      socket.on("makeOffer", async (toSocketId) => {
         await pc.setLocalDescription();
-        const newMsg = {
-          sender: msg.sender,
-          receiver: msg.receiver,
-          sdp: pc.localDescription,
-        };
-        console.log("new connection from " + msg.sender + " to " + msg.receiver);
-        socket.emit("getOffer", newMsg);
+        // const newMsg = {
+        //   sender: msg.sender,
+        //   receiver: msg.receiver,
+        //   sdp: pc.localDescription,
+        // };
+
+        console.log("new connection from " + toSocketId + " to " + msg.receiver);
+        socket.emit("offer", toSocketId, pc.localDescription);
       });
 
-      socket.on("setAnswer", async (msg) => {
-        await pc.setRemoteDescription(msg.sdp);
+      socket.on("setAnswer", async (toSocketId, answer) => {
+        await pc.setRemoteDescription(answer);
       });
 
-      socket.on("setCandidate", async (msg) => {
-        await pc.addIceCandidate(msg.candidate);
+      socket.on("setCandidate", async (toSocketId, candidate) => {
+        await pc.addIceCandidate(candidate);
       });
 
       function checkSender() {

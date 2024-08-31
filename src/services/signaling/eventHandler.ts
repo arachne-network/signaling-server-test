@@ -30,8 +30,16 @@ export class EventHandler implements IEventHandler{
     answer(socket: Socket, toSocketId: string, answer: RTCSessionDescription) {
         
     }
-    disconnect(socket: Socket, reason: string) {
-        
+    async disconnect(socket: Socket, reason: string) {
+        // const streamer = await userCache.getStreamer(socket.id);
+        const room = await roomService.getRoomByStreamerId(socket.id);
+        // console.log("streamer : ", streamer);
+        if(room){
+            roomService.deleteRoom(room.roomId);
+            // connectionService.deleteConnection(streamer, socket.id);
+        }
+
+        console.log(`disconnect ${socket.id} : `, reason);
     }
     async getCandidate(socket: Socket, toSocketId: string, candidate: RTCIceCandidate) {
         const newConnection : IConnection = {

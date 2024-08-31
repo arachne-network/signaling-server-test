@@ -11,6 +11,7 @@ import {Db} from 'mongodb';
 import { SignalingHandler } from './services/signaling/signaling.socket';
 import { EventHandler, IEventHandler } from './services/signaling/eventHandler';
 import { selectPeer } from './selectPeer';
+import apiRoute from './routes/api.route';
 
 // todo : move staticDir to config file
 const staticDir = path.join(__dirname, "../static");
@@ -19,6 +20,7 @@ export async function setupServer(app: Express){
     await connectMongoDB();
 
     addExpressMiddleware(app);
+    addExpressRoutes(app);
     const server : http.Server = createServer(app);
     const io = await startSocketIO(server);
     setSignalingHandler(io);
@@ -37,6 +39,10 @@ function addExpressMiddleware(app: Express){
         origin: 'http://localhost:' + process.env.PORT,
         credentials: true,
     }))
+}
+
+function addExpressRoutes(app: Express){
+    apiRoute(app);
 }
 
 async function startSocketIO(app:http.Server) { 
