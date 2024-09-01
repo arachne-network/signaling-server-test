@@ -1,10 +1,12 @@
 import app from './app';
 import dotenv from "dotenv";
-// import { Storage } from "./storage";
+import { Storage } from "./storage";
 
 dotenv.config();
 
-const port = process.env.PORT;
-// const store = new Storage();
+export const port = process.env.PORT || 3001;
+export const store = new Storage();
 
-app.listen(port);
+app.listen(port, () => {
+    console.log(`[algorithm-server]: Server running at https://localhost:${port}`);
+});

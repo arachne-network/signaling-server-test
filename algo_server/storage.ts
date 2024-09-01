@@ -1,14 +1,23 @@
 import { Graph } from "./types/graph";
 
 export class Storage {
-    private data;
+    private networks: Map<string, Graph>;
     constructor() {
-        this.data = {
-            network: Graph
-        };
+        this.networks = new Map<string, Graph>;
     }
 
-    getData() {
-        return this.data;
+    getNetwork(roomId: string): Graph | null {
+        return this.networks.get(roomId) || null ;
+    }
+
+    addNetwork(roomId: string): Graph {
+        const newNetwork = new Graph(roomId);
+        this.networks.set(roomId, newNetwork);
+
+        return newNetwork;
+    }
+
+    removeNetwork(roomId: string) {
+        this.networks.has(roomId) && this.networks.delete(roomId);
     }
 }
