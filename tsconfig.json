@@ -69,5 +69,5 @@
     "skipLibCheck": true /* Skip type checking of declaration files. */,
     "forceConsistentCasingInFileNames": false /* Disallow inconsistently-cased references to the same file. */
   },
-  "include": ["src/**/*.ts", "algo_server/*"]
+  "include": ["src/**/*.ts", "algo_server/**/*.ts"]
 }

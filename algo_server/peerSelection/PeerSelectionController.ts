@@ -8,19 +8,21 @@ export class PeerSelectionController {
         this.peerSelectionService = new PeerSelectionService();
     }
 
-    public post(req: Request, res: Response): void {
+    public post(req: Request, res: Response): any {
         const id = req.params.id;
         const roomId = req.body.roomId;
         console.log(`POST\t| id: ${id}, roomId: ${roomId}`);
         // TODO: ERROR & status handling
         const result = this.peerSelectionService.insert(id, roomId);
-        res.send(result);
+        console.log("result ", result);
+        res.status(200).json(result);
     }
+
     public delete(req: Request, res: Response): void {
         const id = req.params.id;
         const roomId = req.body.roomId;
         console.log(`DELETE\t| id: ${id}, roomId: ${roomId}`);
         const result = this.peerSelectionService.delete(id, roomId);
-        res.send(result);
+        res.status(200).json(result);
     }
 }

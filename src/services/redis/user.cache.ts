@@ -1,5 +1,3 @@
-import { RedisClientType } from "redis";
-import { IUser } from "../../interfaces/IUser";
 import {RedisClient } from "./redis.connection"
 
 // cache to store socketid to user
@@ -22,6 +20,19 @@ class UserCache extends RedisClient{
         }
     }
 
+    async saveUserToRoom(socketId: string, roomId: string){
+        await this.client.set(`${socketId}`, roomId);
+    }
+
+    async getUserToRoom(socketId : string) : Promise<string | null> {
+        try{
+            const room = await this.client.get(`${socketId}`);
+            return room;
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
+    }
 }
 
 export const userCache : UserCache = new UserCache();

@@ -37,7 +37,6 @@ class RoomService {
     async deleteRoomByStreamer(streamerId: string) {
         return await roomModel.deleteOne({streamer: streamerId});
     }
-
 }
 
 export const roomService : RoomService = new RoomService();

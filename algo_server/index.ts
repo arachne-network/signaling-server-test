@@ -4,7 +4,7 @@ import { Storage } from "./storage";
 
 dotenv.config();
 
-export const port = process.env.PORT || 3001;
+export const port = process.env.ALGO_PORT || 3001;
 export const store = new Storage();
 
 app.listen(port, () => {

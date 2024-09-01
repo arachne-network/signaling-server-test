@@ -25,15 +25,18 @@ export class EventHandler implements IEventHandler{
     async join(socket: Socket, roomId: string) {
         console.log("join", roomId);
         roomService.addUserToRoom(roomId, socket.id);
+        userCache.saveUserToRoom(socket.id, roomId);
     }
+
     offer(socket: Socket, toSocketId: string, offer: RTCSessionDescription) {
         console.log("offer", socket.id, toSocketId);
     }
+
     answer(socket: Socket, toSocketId: string, answer: RTCSessionDescription) {
         console.log("answer", socket.id, toSocketId);
     }
 
-    async disconnect(socket: Socket, reason: string) {
+    async disconnect (socket: Socket, reason: string) {
         // delete room when streamer disconnected
         const room = await roomService.getRoomByStreamerId(socket.id);
         // console.log("streamer : ", streamer);
@@ -51,9 +54,17 @@ export class EventHandler implements IEventHandler{
     }
     async getCandidate(socket: Socket, toSocketId: string, candidate: RTCIceCandidate) {
         console.log("getCandidate", socket.id, toSocketId);
+        const roomId = await userCache.getUserToRoom(toSocketId);
+        
+        if(!roomId){
+            console.error("room not found");
+            return;
+        }
+
         const newConnection : IConnection = {
             from: toSocketId,
             to: socket.id,
+            roomId: roomId,
         }
         await connectionService.addConnection(newConnection);
     }

@@ -3,8 +3,9 @@ import { IConnection } from '../interfaces/IConnection';
 
 
 const connectionSchem : Schema = new Schema({
+    roomId : {type : String, required: true},
     from : {type: String, required: true, index: true},
-    to: {type: String, required: true},
+    to: {type: String, required: true, index : true},
     status: {type: Map, of: String, required: false}
 });
 
