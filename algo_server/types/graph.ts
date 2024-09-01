@@ -58,7 +58,7 @@ export class Graph {
         const child = link.child;
         const idx = parent.childs.indexOf(child);
         parent.childs.splice(idx, 1);
-        if(child.parent === parent) child.parent = null;
+        child.parent = null;
 
         this.getEdges(parent.id).delete(link);
     }
@@ -69,7 +69,6 @@ export class Graph {
 
     findAvailableNode(): User | null {
         for (const [id, links] of this.edges) {
-            console.log(`iter ${id}: ${links} ${links.size}`);
             if (links.size < 2) {
                 return this.getNode(id);
             }
