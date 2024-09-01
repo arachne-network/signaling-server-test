@@ -22,50 +22,69 @@
       const config = {
         iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
       };
-      const pc = new RTCPeerConnection(config);
-      const pc_send = new RTCPeerConnection(config);
+
+      const input_pc = new RTCPeerConnection(config);
+      const pcs = new Map();
 
       let sender;
+      let prevBytesReceived = 0;
+      let prevBytesReceivedTime = 0;
 
-      pc.addEventListener("track", (e) => {
+      input_pc.addEventListener("track", (e) => {
         console.log("add track", e);
         const localVideo = document.getElementById("localVideo");
         localVideo.srcObject = e.streams[0];
       });
 
-      pc.addEventListener("icecandidate", (e) => {
+      input_pc.addEventListener("icecandidate", (e) => {
         console.log("getCandidate: " + JSON.stringify(e.candidate));
 
         socket.emit("getCandidate", sender, e.candidate);
 
-        // setInterval(() => {
-        //   pc.getStats(null).then(stats => {
-        //       stats.forEach(report => {
-        //           if (report.type === 'outbound-rtp' && report.kind === 'video') {
-        //               const bytesSent = report.bytesSent;
-        //               const timestamp = report.timestamp;
+        if(e.candidate){
+          setInterval(() => {
+          input_pc.getStats(null).then(stats => {
+              stats.forEach(async (report) => {
+                  if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                      const bytesSent = report.bytesSent;
+                      const timestamp = report.timestamp;
 
-        //               console.log(`Bytes Sent: ${bytesSent}`);
-        //               console.log(`Timestamp: ${timestamp}`);
+                      console.log(`Bytes Sent: ${bytesSent}`);
+                      console.log(`Timestamp: ${timestamp}`);
 
-        //               // 이전 값과 비교하여 대역폭을 계산할 수 있습니다.
-        //               // 이전 bytesSent 값을 저장해 두고,
-        //               // (currentBytesSent - previousBytesSent) / (currentTime - previousTime)
-        //               // 의 방식으로 bps를 계산할 수 있습니다.
-        //           }
+                      // 이전 값과 비교하여 대역폭을 계산할 수 있습니다.
+                      // 이전 bytesSent 값을 저장해 두고,
+                      // (currentBytesSent - previousBytesSent) / (currentTime - previousTime)
+                      // 의 방식으로 bps를 계산할 수 있습니다.
+                  }
 
-        //           if (report.type === 'inbound-rtp' && report.kind === 'video') {
-        //               const bytesReceived = report.bytesReceived;
-        //               const timestamp = report.timestamp;
+                  if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                      const bytesReceived = report.bytesReceived;
+                      const timestamp = report.timestamp;
 
-        //               console.log(`Bytes Received: ${bytesReceived}`);
-        //               console.log(`Timestamp: ${timestamp}`);
+                      console.log(`Bytes Received: ${bytesReceived}`);
+                      console.log(`Timestamp: ${timestamp}`);
 
-        //               // 마찬가지로 이전 값과 비교하여 대역폭을 계산합니다.
-        //           }
-        //       });
-        //   });
-        // }, 1000); // 1초 간격으로 호출
+                      // caculate bandwidth
+                      if (prevBytesReceived !== 0) {
+                        const bandwidth = (bytesReceived - prevBytesReceived) / (timestamp - prevBytesReceivedTime);
+                        await fetch("/api/connectionStatus", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({ fromSocketId: sender, toSocketId : socket.id, bandwidth: bandwidth }),
+                        });
+                        console.log(`Bandwidth: ${bandwidth}`);
+                      }
+
+                      prevBytesReceived = bytesReceived;
+                      prevBytesReceivedTime = timestamp;
+                  }
+              });
+          });
+        }, 60000); // 1초 간격으로 호출
+        }
       });
 
       function init() {
@@ -78,14 +97,27 @@
 
       socket.on("makeAnswer", async (toSocketId, offer) => {
         sender = toSocketId;
-        await pc.setRemoteDescription(offer);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        await input_pc.setRemoteDescription(offer);
+        const answer = await input_pc.createAnswer();
+        await input_pc.setLocalDescription(answer);
 
         socket.emit("answer", toSocketId, answer);
       });
 
+
+      async function initPC(pc){
+        stream = localVideo.srcObject;
+        for (const track of stream.getTracks()) {
+          pc.addTrack(track, stream);
+        }
+      }
+
       socket.on("makeOffer", async (toSocketId) => {
+        const pc = new RTCPeerConnection(config);
+        await initPC(pc);
+        pcs.set(toSocketId, pc);
+
+        const offer = await pc.createOffer();
         await pc.setLocalDescription();
 
         console.log("new connection from " + toSocketId + " to " + socket.id);
@@ -93,10 +125,12 @@
       });
 
       socket.on("setAnswer", async (toSocketId, answer) => {
+        const pc = pcs.get(toSocketId);
         await pc.setRemoteDescription(answer);
       });
 
       socket.on("setCandidate", async (toSocketId, candidate) => {
+        const pc = pcs.get(toSocketId);
         await pc.addIceCandidate(candidate);
       });
 

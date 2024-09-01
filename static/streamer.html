@@ -12,7 +12,7 @@
   </head>
 
   <body>
-    <button id="start" onclick="start()">start</button>
+    <!-- <button id="start" onclick="start()">start</button> -->
     <video id="localVideo" playsinline autoplay muted width="250"></video>
     <button id="checkSenders" onclick="checkSender()">checkSenders</button>
 
@@ -25,23 +25,32 @@
       const config = {
         iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
       };
-      const pc = new RTCPeerConnection(config);
+      // const pc = new RTCPeerConnection(config);
 
-      async function start() {
-        const startButton = document.getElementById("start");
-        const localVideo = document.getElementById("localVideo");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true,
-        });
+      const pcs = new Map();
+      const startButton = document.getElementById("start");
+      const localVideo = document.getElementById("localVideo");
 
+      navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      }).then(stream => {
+        localVideo.srcObject = stream;
+      });
+      
+
+      async function initPC(pc){
+        const stream = localVideo.srcObject;
         for (const track of stream.getTracks()) {
           pc.addTrack(track, stream);
         }
-        localVideo.srcObject = stream;
       }
 
       socket.on("makeOffer", async (toSocketId) => {
+        const pc = new RTCPeerConnection(config);
+        await initPC(pc);
+        pcs.set(toSocketId, pc);
+
         const offer = await pc.createOffer();
         await pc.setLocalDescription();
 
@@ -50,10 +59,12 @@
       });
 
       socket.on("setAnswer", async (toSocketId, answer) => {
+        const pc = pcs.get(toSocketId);
         await pc.setRemoteDescription(answer);
       });
 
       socket.on("setCandidate", async (toSocketId, candidate) => {
+        const pc = pcs.get(toSocketId);
         await pc.addIceCandidate(candidate);
         // setInterval(() => {
         //   pc.getStats(null).then(stats => {
@@ -86,8 +97,8 @@
       });
 
       function checkSender() {
-        const senders = pc.getSenders();
-        console.log(senders);
+        // const senders = pc.getSenders();
+        // console.log(senders);
       }
     </script>
   </body>
