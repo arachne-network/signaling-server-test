@@ -13,33 +13,42 @@
     <ul id="des"></ul>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io();
-      const config = {
-        iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
-      };
-      const pc = new RTCPeerConnection(config);
-      const rooms = document.getElementById("rooms");
+      // const socket = io();
+      // const config = {
+      //   iceServers: [{ urls: "stun:stun.mystunserver.tld" }],
+      // };
+      // const pc = new RTCPeerConnection(config);
+      // const rooms = document.getElementById("rooms");
 
       // startStream하면 사이트가 바뀌어야 한다.
       function list() {
         while (rooms.hasChildNodes()) {
           rooms.removeChild(rooms.firstChild);
         }
-        socket.emit("list", {}, async (res) => {
-          const list = res.rooms;
-          for (const roomId of list) {
-            console.log(roomId);
-            const room = document.createElement("button");
-            room.textContent = roomId.toString();
-            room.id = roomId;
-            room.name = "roomId";
-            room.value = roomId.toString();
-            room.onclick = function () {
-              location.href = "./viewer.html?roomId=" + roomId;
-            };
-            rooms.appendChild(room);
-          }
-        });
+
+        fetch("/api/list", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            const list = res;
+            for (const roomId of list) {
+              console.log(roomId);
+              const room = document.createElement("button");
+              room.textContent = roomId.toString();
+              room.id = roomId;
+              room.name = "roomId";
+              room.value = roomId.toString();
+              room.onclick = function () {
+                location.href = "./viewer.html?roomId=" + roomId;
+              };
+              rooms.appendChild(room);
+            }
+          });
+
       }
     </script>
   </body>

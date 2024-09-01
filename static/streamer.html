@@ -14,7 +14,7 @@
   <body>
     <button id="start" onclick="start()">start</button>
     <video id="localVideo" playsinline autoplay muted width="250"></video>
-    <button id="checkSenders" onclick="checkSender()"></button>
+    <button id="checkSenders" onclick="checkSender()">checkSenders</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -42,14 +42,10 @@
       }
 
       socket.on("makeOffer", async (toSocketId) => {
+        const offer = await pc.createOffer();
         await pc.setLocalDescription();
-        // const newMsg = {
-        //   sender: msg.sender,
-        //   receiver: msg.receiver,
-        //   sdp: pc.localDescription,
-        // };
 
-        console.log("new connection from " + toSocketId + " to " + msg.receiver);
+        console.log("new connection from " + toSocketId);
         socket.emit("offer", toSocketId, pc.localDescription);
       });
 
@@ -59,6 +55,34 @@
 
       socket.on("setCandidate", async (toSocketId, candidate) => {
         await pc.addIceCandidate(candidate);
+        // setInterval(() => {
+        //   pc.getStats(null).then(stats => {
+        //       stats.forEach(report => {
+        //           if (report.type === 'outbound-rtp' && report.kind === 'video') {
+        //               const bytesSent = report.bytesSent;
+        //               const timestamp = report.timestamp;
+
+        //               console.log(`Bytes Sent: ${bytesSent}`);
+        //               console.log(`Timestamp: ${timestamp}`);
+
+        //               // 이전 값과 비교하여 대역폭을 계산할 수 있습니다.
+        //               // 이전 bytesSent 값을 저장해 두고,
+        //               // (currentBytesSent - previousBytesSent) / (currentTime - previousTime)
+        //               // 의 방식으로 bps를 계산할 수 있습니다.
+        //           }
+
+        //           if (report.type === 'inbound-rtp' && report.kind === 'video') {
+        //               const bytesReceived = report.bytesReceived;
+        //               const timestamp = report.timestamp;
+
+        //               console.log(`Bytes Received: ${bytesReceived}`);
+        //               console.log(`Timestamp: ${timestamp}`);
+
+        //               // 마찬가지로 이전 값과 비교하여 대역폭을 계산합니다.
+        //           }
+        //       });
+        //   });
+        // }, 1000); // 1초 간격으로 호출
       });
 
       function checkSender() {

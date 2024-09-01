@@ -17,34 +17,43 @@ export interface IEventHandler {
 
 export class EventHandler implements IEventHandler{ 
     async create(socket: Socket, roomId : string){
+        console.log("create", socket.id);
         await roomService.addRoom(roomId, socket.id);
         await userCache.saveStreamer(socket.id, roomId);
     }
 
     async join(socket: Socket, roomId: string) {
+        console.log("join", roomId);
         roomService.addUserToRoom(roomId, socket.id);
     }
     offer(socket: Socket, toSocketId: string, offer: RTCSessionDescription) {
-    
+        console.log("offer", socket.id, toSocketId);
     }
     answer(socket: Socket, toSocketId: string, answer: RTCSessionDescription) {
-        
+        console.log("answer", socket.id, toSocketId);
     }
+
     async disconnect(socket: Socket, reason: string) {
-        // const streamer = await userCache.getStreamer(socket.id);
+        // delete room when streamer disconnected
         const room = await roomService.getRoomByStreamerId(socket.id);
         // console.log("streamer : ", streamer);
         if(room){
             roomService.deleteRoom(room.roomId);
-            // connectionService.deleteConnection(streamer, socket.id);
         }
-
+        else{
+            const connection = await connectionService.getConnectionByfrom(socket.id);
+            if(connection){
+                connectionService.deleteConnection(connection.from, connection.to);
+                // todo : call peerSelection to delete connection
+            }
+        }
         console.log(`disconnect ${socket.id} : `, reason);
     }
     async getCandidate(socket: Socket, toSocketId: string, candidate: RTCIceCandidate) {
+        console.log("getCandidate", socket.id, toSocketId);
         const newConnection : IConnection = {
-            from: socket.id,
-            to: toSocketId,
+            from: toSocketId,
+            to: socket.id,
         }
         await connectionService.addConnection(newConnection);
     }

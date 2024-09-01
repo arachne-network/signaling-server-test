@@ -34,7 +34,6 @@ export class SignalingHandler{
                     this.eventHandler.join(socket, roomId);
 
                 const sender = await this.selectPeer(roomId, socket.id);
-
                 this.io.in(sender).emit("makeOffer", socket.id);
             });
 
@@ -58,7 +57,8 @@ export class SignalingHandler{
             });
 
             socket.on("getCandidate", (toSocketId : string, candidate : RTCIceCandidate) => {
-                this.eventHandler.getCandidate(socket, toSocketId, candidate);
+                if(this.eventHandler)
+                    this.eventHandler.getCandidate(socket, toSocketId, candidate);
                 this.io.in(toSocketId).emit("setCandidate", socket.id, candidate);
             });
         });

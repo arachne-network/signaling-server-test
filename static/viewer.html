@@ -28,60 +28,76 @@
       let sender;
 
       pc.addEventListener("track", (e) => {
+        console.log("add track", e);
         const localVideo = document.getElementById("localVideo");
         localVideo.srcObject = e.streams[0];
       });
 
       pc.addEventListener("icecandidate", (e) => {
-        const candidateMsg = {
-          sender: sender,
-          candidate: e.candidate,
-        };
-        console.log("getCandidate: " + JSON.stringify(candidateMsg));
-        socket.emit("getCandidate", candidateMsg);
+        console.log("getCandidate: " + JSON.stringify(e.candidate));
+
+        socket.emit("getCandidate", sender, e.candidate);
+
+        // setInterval(() => {
+        //   pc.getStats(null).then(stats => {
+        //       stats.forEach(report => {
+        //           if (report.type === 'outbound-rtp' && report.kind === 'video') {
+        //               const bytesSent = report.bytesSent;
+        //               const timestamp = report.timestamp;
+
+        //               console.log(`Bytes Sent: ${bytesSent}`);
+        //               console.log(`Timestamp: ${timestamp}`);
+
+        //               // 이전 값과 비교하여 대역폭을 계산할 수 있습니다.
+        //               // 이전 bytesSent 값을 저장해 두고,
+        //               // (currentBytesSent - previousBytesSent) / (currentTime - previousTime)
+        //               // 의 방식으로 bps를 계산할 수 있습니다.
+        //           }
+
+        //           if (report.type === 'inbound-rtp' && report.kind === 'video') {
+        //               const bytesReceived = report.bytesReceived;
+        //               const timestamp = report.timestamp;
+
+        //               console.log(`Bytes Received: ${bytesReceived}`);
+        //               console.log(`Timestamp: ${timestamp}`);
+
+        //               // 마찬가지로 이전 값과 비교하여 대역폭을 계산합니다.
+        //           }
+        //       });
+        //   });
+        // }, 1000); // 1초 간격으로 호출
       });
 
       function init() {
         const url = new URL(window.location.href);
         const urlParams = url.searchParams;
         const roomId = urlParams.get("roomId");
-
-        socket.emit("joinRoom", roomId);
+        console.log("roomId: " + roomId);
+        socket.emit("join", roomId);
       }
 
-      socket.on("makeAnswer", async (msg) => {
-        sender = msg.sender;
-        await pc.setRemoteDescription(msg.sdp);
+      socket.on("makeAnswer", async (toSocketId, offer) => {
+        sender = toSocketId;
+        await pc.setRemoteDescription(offer);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        const newMsg = {
-          sender: msg.sender,
-          receiver: msg.receiver,
-          sdp: pc.localDescription,
-        };
-        socket.emit("getAnswer", newMsg);
+        socket.emit("answer", toSocketId, answer);
       });
 
-      socket.on("makeOffer", async (msg) => {
-        pc_send.addTrack(localVideo.srcObject.getVideoTracks()[0], localVideo.srcObject);
+      socket.on("makeOffer", async (toSocketId) => {
+        await pc.setLocalDescription();
 
-        await pc_send.setLocalDescription();
-        const newMsg = {
-          sender: msg.sender,
-          receiver: msg.receiver,
-          sdp: pc_send.localDescription,
-        };
-        console.log("new connection from " + msg.sender + " to " + msg.receiver);
-        socket.emit("getOffer", newMsg);
+        console.log("new connection from " + toSocketId + " to " + socket.id);
+        socket.emit("offer", toSocketId, pc.localDescription);
       });
 
-      socket.on("setAnswer", async (msg) => {
-        await pc_send.setRemoteDescription(msg.sdp);
+      socket.on("setAnswer", async (toSocketId, answer) => {
+        await pc.setRemoteDescription(answer);
       });
 
-      socket.on("setCandidate", async (msg) => {
-        await pc_send.addIceCandidate(msg.candidate);
+      socket.on("setCandidate", async (toSocketId, candidate) => {
+        await pc.addIceCandidate(candidate);
       });
 
       init();
