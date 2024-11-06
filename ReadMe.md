@@ -1,8 +1,15 @@
-실행방법
+### 프로젝트 목적
+webrtc를 실시간 영상을 다수의 peer에게 제공하는 사이트입니다.
+
+
+### 실행방법
 npm run start
 
-SyntaxError: Unexpected token '?' 뜨면
-npm node install해서 실행하면 됨
+SyntaxError: Unexpected token '?' 뜨면 npm node install 후 재실행
+Docker Redis server 실행방법
+```docker run -p 6379:6379 -it redis/redis-stack-server:latest```
+
+
 
 -------------------
 ## 파일 경로
@@ -15,5 +22,3 @@ npm node install해서 실행하면 됨
 
 -------------------
 
-## Docker Redis server 실행방법
-```docker run -p 6379:6379 -it redis/redis-stack-server:latest```
