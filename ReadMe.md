@@ -8,6 +8,8 @@ npm install
 npm run start
 
 SyntaxError: Unexpected token '?' 뜨면 npm node install 후 재실행
+
+
 Docker Redis server 실행방법
 ```docker run -p 6379:6379 -it redis/redis-stack-server:latest```
 
